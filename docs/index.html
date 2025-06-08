@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>おんまく駐車場</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            height: 100vh;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* 駐車場モーダル */
+        #info-modal {
+            display: none;
+            position: absolute;
+            top: 10%;
+            left: 50%;
+            transform: translate(-50%, 0);
+            width: 80%;
+            max-width: 500px;
+            height: 60vh;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px;
+            border: 1px solid #ccc;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        /* 閉じるボタン */
+        #close-btn {
+            background: #ff4444;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        /* 駐車場一覧ボタン */
+        #toggle-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #007bff;
+            color: white;
+            padding: 8px 12px;
+            border: none;
+            cursor: pointer;
+            z-index: 999;
+        }
+
+        .parking {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-bottom: 1px solid #ccc;
+        }
+    </style>
+</head>
+
+<body>
+    <button id="toggle-btn">駐車場一覧を表示</button>
+
+    <div id="info-modal">
+        <button id="close-btn">閉じる</button>
+        <h2>駐車場情報</h2>
+        <div id="parking-list"></div>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        async function fetchParkingData() {
+            const response = await fetch('parking.json'); // JSONファイルからデータ取得
+            const parkingData = await response.json();
+            updateParkingInfo(parkingData);
+        }
+
+        function updateParkingInfo(parkingData) {
+            var map = L.map('map').setView([34.065, 132.998], 14);
+
+            // 国土地理院のタイルレイヤーを適用
+            L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png', {
+                attribution: '<a href="https://www.gsi.go.jp/">国土地理院</a>'
+            }).addTo(map);
+
+            const parkingList = document.getElementById('parking-list');
+            parkingList.innerHTML = "";
+
+            parkingData.forEach(parking => {
+                L.marker([parking.lat, parking.lng]).addTo(map)
+                    .bindPopup(`<b>${parking.name}</b><br>${parking.address}<br>営業時間: ${parking.hours}<br>駐車状況: ${parking.status}`);
+
+                let parkingItem = document.createElement("div");
+                parkingItem.classList.add("parking");
+                parkingItem.innerHTML = `<strong>${parking.name}</strong><br>住所: ${parking.address}<br>営業時間: ${parking.hours}<br>駐車状況: ${parking.status}`;
+                parkingList.appendChild(parkingItem);
+            });
+        }
+
+        fetchParkingData(); // 初回データ取得
+        setInterval(fetchParkingData, 600000); // 10分ごとに更新
+
+        // モーダルの表示・非表示制御
+        document.getElementById("toggle-btn").addEventListener("click", function () {
+            document.getElementById("info-modal").style.display = "block";
+        });
+
+        document.getElementById("close-btn").addEventListener("click", function () {
+            document.getElementById("info-modal").style.display = "none";
+        });
+    </script>
+</body>
+
+</html>
